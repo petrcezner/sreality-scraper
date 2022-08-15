@@ -1,3 +1,4 @@
+import datetime
 import re
 import time
 from pathlib import Path
@@ -7,21 +8,11 @@ import numpy as np
 
 import unicodedata
 from bs4 import BeautifulSoup
-from pydantic import BaseModel
 from selenium import webdriver
 from selenium.webdriver.safari.options import Options
 # from joblib import Parallel, delayed
 
-
-class AdvertisingModel(BaseModel):
-    id: int
-    price: str
-    living_area: str
-    reality_type: str
-    building_type: str
-    deal_type: str
-    images: List[str]
-    url: str
+from srality_orm import AdvertisingModel
 
 
 class RealityScraper:
@@ -92,9 +83,18 @@ class RealityScraper:
                     [True if "'boolean-true'" in i.attrs['ng-if'] else False
                      for i in item.findAll('span')]
                 )
+        title_loc = re.split('\\n+', soup.find('div', {'class': 'property-title'}).findAll('h1')[0].text)[1:3]
+
+        if 'total_price' in params:
+            price = params['total_price']
+        elif 'price' in params:
+            price = params['price']
+        else:
+            price = params['discounted']
         return AdvertisingModel(**{'id': advertising_url.split('/')[-1],
-                                   'price': params['total_price'] if 'total_price' in params else params[
-                                       'discounted'],
+                                   'title': title_loc[0].replace(u'\xa0', u' '),
+                                   'location': title_loc[1].replace(u'\xa0', u' '),
+                                   'price': price,
                                    'living_area': params['usable_area'] if 'usable_area' in params else params[
                                        'floorage'],
                                    'reality_type': self.reality_type,
@@ -103,7 +103,9 @@ class RealityScraper:
                                    'images':
                                        [i.attrs['src'] for i in soup.findAll('img', {'class': 'ob-c-gallery__img'}) if
                                         'src' in i.attrs],
-                                   'url': url
+                                   'url': url,
+                                   'created_at': datetime.datetime.now(datetime.timezone.utc),
+                                   'updated_at': datetime.datetime.now(datetime.timezone.utc)
                                    })
 
     @staticmethod
