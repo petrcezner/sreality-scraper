@@ -3,16 +3,17 @@ import logging
 import re
 import time
 from pathlib import Path
-from typing import List
 
 import numpy as np
 
 import unicodedata
+
+
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
 from selenium.webdriver.firefox.options import Options
-# from joblib import Parallel, delayed
+from selenium.common.exceptions import WebDriverException
 
 from srality_orm import AdvertisingModel
 
@@ -121,6 +122,9 @@ class RealityScraper:
                                        'updated_at': datetime.datetime.now(datetime.timezone.utc)
                                        })
         except AttributeError as err:
+            print(err)
+            return None
+        except WebDriverException as err:
             print(err)
             return None
 
