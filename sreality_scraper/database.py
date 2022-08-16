@@ -26,7 +26,8 @@ class SrealityDatabase:
     @staticmethod
     def _insert(advert: AdvertisingModel, cursor):
         cursor.execute(
-            """INSERT INTO sreality(id, title, location, price, living_area, reality_type, building_type, deal_type, url, images, created_at, updated_at)
+            """INSERT INTO sreality(id, title, location, price, living_area, reality_type, building_type, deal_type,
+             url, images, created_at, updated_at)
             VALUES (%s, %s, %s, %s,  %s, %s, %s, %s, %s, %s, %s, %s) ON CONFLICT (id) DO NOTHING""",
             (advert.id, advert.title, advert.location, advert.price, advert.living_area, advert.reality_type,
              advert.building_type, advert.deal_type, advert.url, advert.images, advert.created_at, advert.updated_at,))
