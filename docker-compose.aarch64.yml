@@ -20,7 +20,7 @@ services:
 
   selenium:
     container_name: selenium
-    image: selenium/standalone-firefox
+    image: seleniarm/standalone-firefox
     shm_size: '2gb'
     networks:
       - web

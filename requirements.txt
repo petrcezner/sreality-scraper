@@ -1,0 +1,7 @@
+streamlit
+numpy
+beautifulsoup4
+selenium
+psycopg2
+pydantic
+colorlog
