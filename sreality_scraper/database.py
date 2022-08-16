@@ -43,7 +43,7 @@ class SrealityDatabase:
 
 
 if __name__ == '__main__':
-    from main import RealityScraper
+    from scraper import RealityScraper
 
     db_ = SrealityDatabase(database='sreality', user='sreality', password='sreality_postgres')
     scraper = RealityScraper(max_advertising=20)

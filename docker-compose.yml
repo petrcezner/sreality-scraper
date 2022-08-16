@@ -1,4 +1,7 @@
 version: "3.4"
+networks:
+  web:
+    driver: bridge
 
 services:
   database:
@@ -12,3 +15,24 @@ services:
       - '5432:5432'
     volumes:
       - ./db/init.sql:/docker-entrypoint-initdb.d/create_tables.sql
+    networks:
+      - web
+
+  selenium:
+    container_name: selenium
+    image: seleniarm/standalone-firefox
+    shm_size: '2gb'
+#    ports:
+#      - '4444:4444'
+    networks:
+      - web
+
+  scraper:
+    build: ""
+    container_name: sreality-scraper
+    ports:
+      - '8080:8501'
+    networks:
+      - web
+    depends_on:
+      - selenium
