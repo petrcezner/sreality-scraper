@@ -5,7 +5,7 @@ from database import SrealityDatabase
 from utils import init_logger
 
 db = SrealityDatabase(database='sreality', user='sreality', password='sreality_postgres', host='database')
-scraper = RealityScraper(max_advertising=500)
+scraper = RealityScraper(db, max_advertising=500)
 
 if 'scrape_page' not in st.session_state:
     logger = init_logger('__main__', True)
@@ -23,8 +23,7 @@ st.markdown("<h1 style='text-align: center;'>SReality Scraping App</h1>", unsafe
 
 
 def start_scraping():
-    data = scraper()
-    db.insert_many(data)
+    scraper()
     st.session_state.scrape_page = True
 
 
@@ -45,10 +44,17 @@ def show_db():
     for i, ad in enumerate(data):
         cols = st.columns(4, gap='medium')
         cols[0].header(f'Property number: {i}')
-        cols[1].subheader(f'{ad.title}')
-        cols[1].image(ad.images[0], use_column_width='auto')
-        cols[2].subheader(f'{ad.location}')
-        cols[2].image(ad.images[1], use_column_width='auto')
+        if len(ad.images) == 2:
+            cols[1].subheader(f'{ad.title}')
+            cols[1].image(ad.images[0], use_column_width='auto')
+            cols[2].subheader(f'{ad.location}')
+            cols[2].image(ad.images[1], use_column_width='auto')
+        elif len(ad.images) == 1:
+            cols[1].subheader(f'{ad.title}')
+            cols[1].image(ad.images[0], use_column_width='auto')
+        else:
+            cols[1].subheader(f'{ad.title}')
+            cols[1].write(f'There are no images.')
         write_to_col(cols[3], ad)
 
 
