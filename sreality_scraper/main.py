@@ -20,7 +20,7 @@ st.set_page_config(
 )
 
 st.markdown("<h1 style='text-align: center;'>SReality Scraping App</h1>", unsafe_allow_html=True)
-
+values = st.sidebar.slider('Select Ads?', 0, 500, (0, 20))
 
 def start_scraping():
     scraper()
@@ -35,15 +35,14 @@ def write_to_col(col, advert):
     col.write(f'[Link]({advert.url}) to the Advertisement')
 
 
-def show_db():
+def show_db(data, offset):
     if st.sidebar.button('Close'):
         st.session_state.scrape_push = False
         st.session_state.scrape_page = False
         st.experimental_rerun()
-    data = db.get_data(how_many=500)
     for i, ad in enumerate(data):
         cols = st.columns(4, gap='medium')
-        cols[0].header(f'Property number: {i}')
+        cols[0].header(f'Property number: {offset + i}')
         if len(ad.images) == 2:
             cols[1].subheader(f'{ad.title}')
             cols[1].image(ad.images[0], use_column_width='auto')
@@ -67,8 +66,10 @@ if st.sidebar.button('Scrape Web') and not st.session_state.scrape_page:
     st.success('Web scraped!')
 
 if st.session_state.scrape_push and st.session_state.scrape_page:
-    show_db()
+    data = db.get_data(how_many=500)
+    show_db(data[values[0]:values[1]], values[0])
 
 if not st.session_state.scrape_push:
     if st.sidebar.button('Show Database'):
-        show_db()
+        data = db.get_data(how_many=500)
+        show_db(data[values[0]:values[1]], values[0])

@@ -103,8 +103,10 @@ class RealityScraper:
                 price = params['total_price']
             elif 'price' in params:
                 price = params['price']
-            else:
+            elif 'discounted' in params:
                 price = params['discounted']
+            else:
+                price = 'Not Available'
             self.db.insert_one(AdvertisingModel(**{'id': advertising_url.split('/')[-1],
                                                    'title': title_loc[0].replace(u'\xa0', u' '),
                                                    'location': title_loc[1].replace(u'\xa0', u' '),
