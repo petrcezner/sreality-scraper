@@ -8,26 +8,29 @@ import numpy as np
 
 import unicodedata
 
-
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from selenium.webdriver import DesiredCapabilities
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import WebDriverException
 
+from database import SrealityDatabase
 from srality_orm import AdvertisingModel
 
 logger = logging.getLogger('scraper.py')
 
 
 class RealityScraper:
-    def __init__(self, reality_type: str = 'apartments', deal_type: str = 'for-sale', max_advertising: int = 500):
+    def __init__(self, db: SrealityDatabase, reality_type: str = 'apartments', deal_type: str = 'for-sale',
+                 max_advertising: int = 500, error_buffer: int = 5):
+        self.db = db
         self.page = 'page'
         self.language = '/en'
         self.search = 'search'
         self.base_url = Path(f'https://www.sreality.cz{self.language}/{self.search}')
         self.reality_type = reality_type
         self.deal_type = deal_type
+        self.error_buffer = error_buffer
         self.max_advertising = max_advertising
         self.scrape_url = self.base_url / deal_type / reality_type
         self.reality_type = reality_type
@@ -41,19 +44,17 @@ class RealityScraper:
     def __call__(self):
         self.browser = webdriver.Remote("http://selenium:4444/wd/hub",
                                         options=self.options,
-                                        desired_capabilities=DesiredCapabilities.FIREFOX.copy())
+                                        desired_capabilities=DesiredCapabilities.CHROME.copy())
         advertising_urls = self.get_advertising_urls()
-        prices = [self.get_advertising_info(page) for page in advertising_urls]
-        prices = [p for p in prices if p]
+        [self.get_advertising_info(page) for page in advertising_urls]
         self.browser.quit()
-        return prices
 
     def get_advertising_urls(self):
         self.browser.get(str(self.scrape_url / 'js'))
         time.sleep(np.random.uniform(1.0, 1.5))
         elements = self.get_urls_on_page(str(self.scrape_url))
         i = 1
-        while len(elements) < self.max_advertising:
+        while len(elements) < self.max_advertising + self.error_buffer:
             i += 1
 
             url = f"{self.scrape_url}?{self.page}={i}"
@@ -102,30 +103,38 @@ class RealityScraper:
                 price = params['total_price']
             elif 'price' in params:
                 price = params['price']
-            else:
+            elif 'discounted' in params:
                 price = params['discounted']
-            return AdvertisingModel(**{'id': advertising_url.split('/')[-1],
-                                       'title': title_loc[0].replace(u'\xa0', u' '),
-                                       'location': title_loc[1].replace(u'\xa0', u' '),
-                                       'price': price,
-                                       'living_area': params['usable_area'] if 'usable_area' in params else params[
-                                           'floorage'],
-                                       'reality_type': self.reality_type,
-                                       'building_type': params['building'] if 'building' in params else None,
-                                       'deal_type': self.deal_type,
-                                       'images':
-                                           [i.attrs['src'] for i in soup.findAll('img', {'class': 'ob-c-gallery__img'})
-                                            if
-                                            'src' in i.attrs],
-                                       'url': url,
-                                       'created_at': datetime.datetime.now(datetime.timezone.utc),
-                                       'updated_at': datetime.datetime.now(datetime.timezone.utc)
-                                       })
+            else:
+                price = 'Not Available'
+            self.db.insert_one(AdvertisingModel(**{'id': advertising_url.split('/')[-1],
+                                                   'title': title_loc[0].replace(u'\xa0', u' '),
+                                                   'location': title_loc[1].replace(u'\xa0', u' '),
+                                                   'price': price,
+                                                   'living_area': params['usable_area'] if 'usable_area' in params else
+                                                   params[
+                                                       'floorage'],
+                                                   'reality_type': self.reality_type,
+                                                   'building_type': params[
+                                                       'building'] if 'building' in params else None,
+                                                   'deal_type': self.deal_type,
+                                                   'images':
+                                                       [i.attrs['src'] for i in
+                                                        soup.findAll('img', {'class': 'ob-c-gallery__img'})
+                                                        if
+                                                        'src' in i.attrs],
+                                                   'url': url,
+                                                   'created_at': datetime.datetime.now(datetime.timezone.utc),
+                                                   'updated_at': datetime.datetime.now(datetime.timezone.utc)
+                                                   }))
         except AttributeError as err:
-            print(err)
+            logger.warning(err)
             return None
         except WebDriverException as err:
-            print(err)
+            logger.warning(err)
+            return None
+        except TypeError as err:
+            logger.warning(err)
             return None
 
     @staticmethod
